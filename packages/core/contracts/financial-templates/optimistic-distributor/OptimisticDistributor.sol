@@ -179,6 +179,8 @@ contract OptimisticDistributor is Lockable, MultiCaller, Testable {
         require(optimisticOracleLivenessTime < MAXIMUM_LIVENESS, "OO liveness too large");
 
         // Store funded reward and log created reward.
+        uint256 rewardIndex = rewards.length;
+        bytes memory ancillaryData = _appendRewardIndex(rewardIndex, customAncillaryData);
         Reward memory reward =
             Reward({
                 distributionExecuted: false,
@@ -190,9 +192,8 @@ contract OptimisticDistributor is Lockable, MultiCaller, Testable {
                 optimisticOracleLivenessTime: optimisticOracleLivenessTime,
                 previousProposalTimestamp: 0,
                 priceIdentifier: priceIdentifier,
-                customAncillaryData: customAncillaryData
+                customAncillaryData: ancillaryData
             });
-        uint256 rewardIndex = rewards.length;
         rewards.push() = reward;
         emit RewardCreated(
             reward.sponsor,
@@ -258,7 +259,7 @@ contract OptimisticDistributor is Lockable, MultiCaller, Testable {
         rewards[rewardIndex].previousProposalTimestamp = timestamp;
 
         // Append rewardIndex to ancillary data.
-        bytes memory ancillaryData = _appendRewardIndex(rewardIndex, reward.customAncillaryData);
+        bytes memory ancillaryData = reward.customAncillaryData;
 
         // Generate hash for proposalId.
         bytes32 proposalId = _getProposalId(reward.priceIdentifier, timestamp, ancillaryData);
@@ -329,7 +330,7 @@ contract OptimisticDistributor is Lockable, MultiCaller, Testable {
         require(!reward.distributionExecuted, "Reward already distributed");
 
         // Append reward index to ancillary data.
-        bytes memory ancillaryData = _appendRewardIndex(proposal.rewardIndex, reward.customAncillaryData);
+        bytes memory ancillaryData = reward.customAncillaryData;
 
         // Get resolved price. Reverts if the request is not settled or settleable.
         int256 resolvedPrice =
@@ -422,7 +423,7 @@ contract OptimisticDistributor is Lockable, MultiCaller, Testable {
         // Valid proposal cannot have zero timestamp.
         if (reward.previousProposalTimestamp == 0) return true;
 
-        bytes memory ancillaryData = _appendRewardIndex(rewardIndex, reward.customAncillaryData);
+        bytes memory ancillaryData = reward.customAncillaryData;
         OptimisticOracleInterface.Request memory blockingRequest =
             optimisticOracle.getRequest(
                 address(this),
